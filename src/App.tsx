@@ -1,16 +1,55 @@
 import { useState } from 'react'
 import './App.css'
+import { lifeFutures, type Future } from "./lifeFutures.ts";
+
+type FutureRoom = { [key: string]: Future }
 
 function App() {
     const [page, setPage] = useState<'start' | 'game' | 'end'>("start")
     const [currentRoom, setCurrentRoom] = useState<string>("C3")
-    const letters = ['A', 'B', 'C', 'D', 'E']
+    const [doorFutures, setDoorFutures] = useState<FutureRoom>({})
+    const [survivalPoints, setSurvivalPoints] = useState<number>(0)
+    const [futurePoints, setFuturePoints] = useState<number>(0)
+    const [exit, setExit] = useState<string>("")
 
-    function handleRoomClick(room: string) {
-        console.log(room)
+    const letters = ['A', 'B', 'C', 'D', 'E']
+    const directions = ["north", "south", "east", "west"]
+    const corners = ['A1', 'A5', 'E1', 'E5']
+
+    function roomChange(room: string) {
+        if (room === exit) {
+            setPage("end")
+            return
+        }
+
+        setCurrentRoom(room)
+
+        const newDoorFutures: FutureRoom = {}
+
+        for (const direction of directions) {
+            const adj = getAdjacentRoom(room, direction)
+            if (adj !== "X") {
+                newDoorFutures[adj] = lifeFutures[Math.floor(Math.random() * lifeFutures.length)]
+            }
+        }
+
+        setDoorFutures(newDoorFutures)
     }
 
-    function getAdjacentRoom(current: string, dir: "north" | "south" | "east" | "west") {
+    function gameStart() {
+        setPage("game");
+        roomChange("C3")
+        setSurvivalPoints(15)
+        setFuturePoints(10)
+        const exit = corners[Math.floor(Math.random() * corners.length)]
+        setExit(exit)
+    }
+
+    function handleRoomClick(room: string) {
+        roomChange(room)
+    }
+
+    function getAdjacentRoom(current: string, dir: string) {
         const letters = ['A', 'B', 'C', 'D', 'E'];
         const row = letters.indexOf(current[0]);
         const col = parseInt(current[1]);
@@ -24,20 +63,20 @@ function App() {
         if (dir === "east") newCol += 1;
 
         if (newRow < 0 || newRow >= letters.length || newCol < 1 || newCol > 5) {
-            return "X"; // no room in that direction
+            return "X";
         }
         return letters[newRow] + newCol;
     }
 
     return (
         <>
-            {page == "start" &&
+            {page === "start" &&
                 <>
                     <h1>Start</h1>
-                    <button onClick={() => setPage("game")}>Start Game</button>
+                    <button onClick={gameStart}>Start Game</button>
                 </>
             }
-            {page == "game" &&
+            {page === "game" &&
                 <>
                     <h1 className="text-center text-2xl font-bold mb-4">Game</h1>
 
@@ -53,7 +92,7 @@ function App() {
                                     <div
                                         key={i}
                                         className={`flex items-center justify-center h-6 w-6 border-2 border-orange-500 rounded-md
-              ${roomName == currentRoom ? "bg-white text-black" : ""}`}
+              ${roomName === currentRoom ? "bg-white text-black" : ""}`}
                                     >
                                         {roomName}
                                     </div>
@@ -67,56 +106,84 @@ function App() {
                         <div className="relative w-80 h-80 bg-gray-900 border-4 border-gray-700 rounded-lg">
 
                             {/* Top (North) */}
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full flex flex-col items-center gap-2">
-                                <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-center">
-                                    A dark hallway stretches north...
-                                </div>
-                                <div
-                                    className="w-20 h-10 bg-red-500 flex items-center justify-center text-white rounded cursor-pointer"
-                                    onClick={() => handleRoomClick(getAdjacentRoom(currentRoom, "north"))}
-                                >
-                                    {getAdjacentRoom(currentRoom, "north")}
-                                </div>
-                            </div>
+                            {getAdjacentRoom(currentRoom, "north") !== "X" &&
+                                (() => {
+                                    const northRoom = getAdjacentRoom(currentRoom, "north")
+                                    return (
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full flex flex-col items-center gap-2">
+                                            <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-center">
+                                                {doorFutures[northRoom]?.description}
+                                            </div>
+                                            <div
+                                                className="w-20 h-10 bg-red-500 flex items-center justify-center text-white rounded cursor-pointer"
+                                                onClick={() => handleRoomClick(northRoom)}
+                                            >
+                                                {northRoom}
+                                            </div>
+                                        </div>
+                                    )
+                                })()
+                            }
 
                             {/* Right (East) */}
-                            <div className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2 flex flex-row items-center gap-2">
-                                <div
-                                    className="w-10 h-20 bg-green-500 flex items-center justify-center text-white rounded rotate-90 cursor-pointer"
-                                    onClick={() => handleRoomClick(getAdjacentRoom(currentRoom, "east"))}
-                                >
-                                    {getAdjacentRoom(currentRoom, "east")}
-                                </div>
-                                <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32">
-                                    A faint glow shines from the east...
-                                </div>
-                            </div>
+                            {getAdjacentRoom(currentRoom, "east") !== "X" &&
+                                (() => {
+                                    const eastRoom = getAdjacentRoom(currentRoom, "east")
+                                    return (
+                                        <div className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2 flex flex-row items-center gap-2">
+                                            <div
+                                                className="w-10 h-20 bg-green-500 flex items-center justify-center text-white rounded rotate-90 cursor-pointer"
+                                                onClick={() => handleRoomClick(eastRoom)}
+                                            >
+                                                {eastRoom}
+                                            </div>
+                                            <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32">
+                                                {doorFutures[eastRoom]?.description}
+                                            </div>
+                                        </div>
+                                    )
+                                })()
+                            }
 
                             {/* Bottom (South) */}
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full flex flex-col items-center gap-2">
-                                <div
-                                    className="w-20 h-10 bg-blue-500 flex items-center justify-center text-white rounded cursor-pointer"
-                                    onClick={() => handleRoomClick(getAdjacentRoom(currentRoom, "south"))}
-                                >
-                                    {getAdjacentRoom(currentRoom, "south")}
-                                </div>
-                                <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-center">
-                                    You hear dripping water below...
-                                </div>
-                            </div>
+                            {getAdjacentRoom(currentRoom, "south") !== "X" &&
+                                (() => {
+                                    const southRoom = getAdjacentRoom(currentRoom, "south")
+                                    return (
+                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full flex flex-col items-center gap-2">
+                                            <div
+                                                className="w-20 h-10 bg-blue-500 flex items-center justify-center text-white rounded cursor-pointer"
+                                                onClick={() => handleRoomClick(southRoom)}
+                                            >
+                                                {southRoom}
+                                            </div>
+                                            <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-center">
+                                                {doorFutures[southRoom]?.description}
+                                            </div>
+                                        </div>
+                                    )
+                                })()
+                            }
 
                             {/* Left (West) */}
-                            <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 flex flex-row items-center gap-2">
-                                <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-right">
-                                    A cold draft comes from the west...
-                                </div>
-                                <div
-                                    className="w-10 h-20 bg-yellow-500 flex items-center justify-center text-white rounded -rotate-90 cursor-pointer"
-                                    onClick={() => handleRoomClick(getAdjacentRoom(currentRoom, "west"))}
-                                >
-                                    {getAdjacentRoom(currentRoom, "west")}
-                                </div>
-                            </div>
+                            {getAdjacentRoom(currentRoom, "west") !== "X" &&
+                                (() => {
+                                    const westRoom = getAdjacentRoom(currentRoom, "west")
+                                    return (
+                                        <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 flex flex-row items-center gap-2">
+                                            <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-right">
+                                                {doorFutures[westRoom]?.description}
+                                            </div>
+                                            <div
+                                                className="w-10 h-20 bg-yellow-500 flex items-center justify-center text-white rounded -rotate-90 cursor-pointer"
+                                                onClick={() => handleRoomClick(westRoom)}
+                                            >
+                                                {westRoom}
+                                            </div>
+                                        </div>
+                                    )
+                                })()
+                            }
 
                             {/* Room name in the centre */}
                             <div className="flex items-center justify-center h-full text-white text-3xl font-bold">
@@ -133,10 +200,10 @@ function App() {
                     </div>
                 </>
             }
-            {page == "end" &&
+            {page === "end" &&
                 <>
                     <h1>End</h1>
-                    <button onClick={() => setPage("game")}>Start Game</button>
+                    <button onClick={gameStart}>Start Game</button>
                 </>
             }
         </>
