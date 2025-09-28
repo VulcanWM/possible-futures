@@ -122,7 +122,7 @@ function App() {
                         <p className="font-semibold text-lg mb-2">Instructions:</p>
                         <ul className="list-disc list-inside space-y-1 text-sm">
                             <li>You start in room C3 with 15 survival points and 10 future points.</li>
-                            <li>Each move may cost survival points but earns future points.</li>
+                            <li>Each move may cost survival points and you can gain or lose future points.</li>
                             <li>Reach the exit before running out of rounds or survival points to win.</li>
                             <li>See adjacent rooms and their possible outcomes before moving.</li>
                             <li>Plan your path carefully!</li>
