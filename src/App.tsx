@@ -69,6 +69,7 @@ function App() {
         setFuturePoints(10)
         setRound(0)
         setMsg("")
+        setEndMessage("")
         const newExit = corners[Math.floor(Math.random() * corners.length)]
         setExit(newExit)
         setDoorFutures({})
@@ -178,7 +179,8 @@ function App() {
                                                 {doorFutures[northRoom]?.description}
                                             </div>
                                             <div
-                                                className="w-16 h-8 bg-red-500 flex items-center justify-center rounded-lg cursor-pointer hover:bg-red-600 transition text-xs"
+                                                className="w-16 h-8 bg-red-500 flex items-center justify-center rounded-lg cursor-pointer text-xs
+           transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 hover:rotate-3 hover:shadow-xl"
                                                 onClick={() => handleRoomClick(northRoom)}
                                             >
                                                 {northRoom}
@@ -195,7 +197,8 @@ function App() {
                                     return (
                                         <div className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2 flex flex-row items-center gap-2">
                                             <div
-                                                className="w-8 h-16 bg-green-500 flex items-center justify-center rounded-lg cursor-pointer hover:bg-green-600 transition rotate-90 text-xs"
+                                                className="w-8 h-16 bg-green-500 flex items-center justify-center rounded-lg cursor-pointer text-xs rotate-90
+           transition-all duration-300 transform hover:scale-110 hover:translate-x-1 hover:rotate-3 hover:shadow-xl"
                                                 onClick={() => handleRoomClick(eastRoom)}
                                             >
                                                 {eastRoom}
@@ -215,7 +218,8 @@ function App() {
                                     return (
                                         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full flex flex-col items-center gap-1">
                                             <div
-                                                className="w-16 h-8 bg-blue-500 flex items-center justify-center rounded-lg cursor-pointer hover:bg-blue-600 transition text-xs"
+                                                className="w-16 h-8 bg-blue-500 flex items-center justify-center rounded-lg cursor-pointer text-xs
+           transition-all duration-300 transform hover:scale-110 hover:translate-y-1 hover:-rotate-3 hover:shadow-xl"
                                                 onClick={() => handleRoomClick(southRoom)}
                                             >
                                                 {southRoom}
@@ -238,7 +242,8 @@ function App() {
                                                 {doorFutures[westRoom]?.description}
                                             </div>
                                             <div
-                                                className="w-8 h-16 bg-yellow-500 flex items-center justify-center rounded-lg cursor-pointer hover:bg-yellow-600 transition -rotate-90 text-xs"
+                                                className="w-8 h-16 bg-yellow-500 flex items-center justify-center rounded-lg cursor-pointer text-xs -rotate-90
+           transition-all duration-300 transform hover:scale-110 hover:-translate-x-1 hover:-rotate-3 hover:shadow-xl"
                                                 onClick={() => handleRoomClick(westRoom)}
                                             >
                                                 {westRoom}
@@ -264,12 +269,24 @@ function App() {
 
             {/* END PAGE */}
             {page === "end" &&
-                <div className="bg-gray-800 rounded-xl p-8 shadow-xl max-w-md w-full text-center flex flex-col justify-between min-h-[50vh]">
-                    <h1 className="text-4xl font-bold mb-6 text-orange-400">Game Over</h1>
-                    <p className="text-lg mb-6">{endMessage}</p>
+                <div
+                    className={`rounded-xl p-8 shadow-xl max-w-md w-full text-center flex flex-col justify-between min-h-[50vh]
+            ${endMessage === "You won!" ? "bg-green-800 text-green-100" : "bg-red-800 text-red-100"}`}
+                >
+                    <h1 className="text-4xl font-bold mb-4">
+                        {endMessage === "You won!" ? "Victory!" : "Game Over"}
+                    </h1>
+
+                    <div className="mb-6 space-y-2">
+                        <p>Rounds Played: <span className="font-bold text-orange-400">{round}</span></p>
+                        <p>Survival Points Remaining: <span className="font-bold text-orange-400">{survivalPoints > 0 ? survivalPoints : 0}</span></p>
+                        <p>Future Points Earned: <span className="font-bold text-orange-400">{futurePoints}</span></p>
+                    </div>
+
                     <button
                         onClick={gameStart}
-                        className="px-8 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-bold text-lg transition-all shadow-md mt-4"
+                        className={`px-8 py-3 rounded-lg font-bold text-lg transition-all shadow-md
+                ${endMessage === "You won!" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
                     >
                         Play Again
                     </button>
