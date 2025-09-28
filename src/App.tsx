@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { lifeFutures, type Future } from "./lifeFutures.ts"
 
 type FutureRoom = { [key: string]: Future }
@@ -13,10 +13,24 @@ function App() {
     const [msg, setMsg] = useState<string>("")
     const [round, setRound] = useState<number>(0)
     const [endMessage, setEndMessage] = useState<string>("")
+    const [highscore, setHighscore] = useState<number>(0)
 
     const letters = ['A', 'B', 'C', 'D', 'E']
     const directions = ["north", "south", "east", "west"]
     const corners = ['A1', 'A5', 'E1', 'E5']
+
+    // Load highscore from localStorage when app mounts
+    useEffect(() => {
+        const storedHighscore = localStorage.getItem("futureHighscore")
+        if (storedHighscore) setHighscore(parseInt(storedHighscore))
+    }, [])
+
+    function updateHighscore(points: number) {
+        if (points > highscore) {
+            setHighscore(points)
+            localStorage.setItem("futureHighscore", points.toString())
+        }
+    }
 
     function roomChange(room: string, isFirstMove = false, roundNumber?: number) {
         setCurrentRoom(room)
@@ -51,6 +65,7 @@ function App() {
             setPage("end")
             setDoorFutures({})
             setEndMessage("You won!")
+            updateHighscore(futurePoints)
             return
         }
 
@@ -74,8 +89,6 @@ function App() {
         setExit(newExit)
         setDoorFutures({})
         setPage("game")
-
-        // Start game with round 1
         roomChange("C3", true, 1)
     }
 
@@ -105,7 +118,7 @@ function App() {
             {page === "start" &&
                 <div className="bg-gray-800 rounded-xl p-8 shadow-xl max-w-lg w-full text-center flex flex-col justify-between min-h-[60vh]">
                     <h1 className="text-4xl font-extrabold mb-6 text-orange-400">Welcome to Possible Futures</h1>
-                    <div className="text-left mb-6 bg-gray-700 p-4 rounded-lg space-y-2 flex-1">
+                    <div className="text-left mb-4 bg-gray-700 p-4 rounded-lg space-y-2 flex-1">
                         <p className="font-semibold text-lg mb-2">Instructions:</p>
                         <ul className="list-disc list-inside space-y-1 text-sm">
                             <li>You start in room C3 with 15 survival points and 10 future points.</li>
@@ -115,9 +128,10 @@ function App() {
                             <li>Plan your path carefully!</li>
                         </ul>
                     </div>
+                    <p className="mb-4 text-yellow-400 font-bold text-lg">Highscore: {highscore} Future Points</p>
                     <button
                         onClick={gameStart}
-                        className="px-8 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-bold text-lg transition-all shadow-md mt-4"
+                        className="px-8 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-bold text-lg transition-all shadow-md"
                     >
                         Start Game
                     </button>
@@ -281,6 +295,7 @@ function App() {
                         <p>Rounds Played: <span className="font-bold text-orange-400">{round}</span></p>
                         <p>Survival Points Remaining: <span className="font-bold text-orange-400">{survivalPoints > 0 ? survivalPoints : 0}</span></p>
                         <p>Future Points Earned: <span className="font-bold text-orange-400">{futurePoints}</span></p>
+                        <p>Highscore: <span className="font-bold text-yellow-400">{highscore}</span></p>
                     </div>
 
                     <button
