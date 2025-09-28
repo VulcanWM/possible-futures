@@ -11,38 +11,71 @@ function App() {
     const [survivalPoints, setSurvivalPoints] = useState<number>(0)
     const [futurePoints, setFuturePoints] = useState<number>(0)
     const [exit, setExit] = useState<string>("")
+    const [msg, setMsg] = useState<string>("")
+    const [round, setRound] = useState<number>(0)
+    const [endMessage, setEndMessage] = useState<string>("")
 
     const letters = ['A', 'B', 'C', 'D', 'E']
     const directions = ["north", "south", "east", "west"]
     const corners = ['A1', 'A5', 'E1', 'E5']
 
-    function roomChange(room: string) {
-        if (room === exit) {
+    function roomChange(room: string, isFirstMove = false) {
+        setCurrentRoom(room)
+        const newRound = round + 1
+        setRound(newRound)
+
+        if (!isFirstMove && Object.keys(doorFutures).length !== 0) {
+            const survivalRanges = [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 7]
+            const survival = survivalRanges[Math.floor(Math.random() * survivalRanges.length)]
+
+            const futureValue = doorFutures[room]?.value ?? 0
+            setSurvivalPoints(prev => prev - survival)
+            setFuturePoints(prev => prev + futureValue)
+            setMsg(`You lost ${survival} survival points and gained ${futureValue} future points.`)
+
+            if (survivalPoints - survival <= 0) {
+                setPage("end")
+                setDoorFutures({})
+                setEndMessage("You died because you lost all your survival points")
+                return
+            }
+        }
+
+        if (newRound > 15) {
             setPage("end")
+            setDoorFutures({})
+            setEndMessage("You died because you ran out of rounds.")
             return
         }
 
-        setCurrentRoom(room)
+        if (room === exit) {
+            setPage("end")
+            setDoorFutures({})
+            setEndMessage("You won!")
+            return
+        }
 
         const newDoorFutures: FutureRoom = {}
-
         for (const direction of directions) {
             const adj = getAdjacentRoom(room, direction)
             if (adj !== "X") {
                 newDoorFutures[adj] = lifeFutures[Math.floor(Math.random() * lifeFutures.length)]
             }
         }
-
         setDoorFutures(newDoorFutures)
     }
 
     function gameStart() {
-        setPage("game");
-        roomChange("C3")
         setSurvivalPoints(15)
         setFuturePoints(10)
-        const exit = corners[Math.floor(Math.random() * corners.length)]
-        setExit(exit)
+        setRound(0)
+        setMsg("")
+        const newExit = corners[Math.floor(Math.random() * corners.length)]
+        setExit(newExit)
+        setDoorFutures({})
+        setPage("game")
+
+        roomChange("C3", true)
     }
 
     function handleRoomClick(room: string) {
@@ -50,163 +83,192 @@ function App() {
     }
 
     function getAdjacentRoom(current: string, dir: string) {
-        const letters = ['A', 'B', 'C', 'D', 'E'];
-        const row = letters.indexOf(current[0]);
-        const col = parseInt(current[1]);
+        const row = letters.indexOf(current[0])
+        const col = parseInt(current[1])
 
-        let newRow = row;
-        let newCol = col;
+        let newRow = row
+        let newCol = col
 
-        if (dir === "north") newRow -= 1;
-        if (dir === "south") newRow += 1;
-        if (dir === "west") newCol -= 1;
-        if (dir === "east") newCol += 1;
+        if (dir === "north") newRow -= 1
+        if (dir === "south") newRow += 1
+        if (dir === "west") newCol -= 1
+        if (dir === "east") newCol += 1
 
-        if (newRow < 0 || newRow >= letters.length || newCol < 1 || newCol > 5) {
-            return "X";
-        }
-        return letters[newRow] + newCol;
+        if (newRow < 0 || newRow >= letters.length || newCol < 1 || newCol > 5) return "X"
+        return letters[newRow] + newCol
     }
 
     return (
-        <>
+        <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col items-center justify-center p-4">
             {page === "start" &&
-                <>
-                    <h1>Start</h1>
-                    <button onClick={gameStart}>Start Game</button>
-                </>
+                <div className="bg-gray-800 rounded-xl p-8 shadow-xl max-w-lg w-full text-center">
+                    <h1 className="text-4xl font-extrabold mb-6 text-orange-400">Welcome to Survival Game</h1>
+                    <div className="text-left mb-6 bg-gray-700 p-4 rounded-lg space-y-2">
+                        <p className="font-semibold text-lg mb-2">Instructions:</p>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                            <li>You start in room C3 with 15 survival points and 10 future points.</li>
+                            <li>Each move may cost survival points but earns future points.</li>
+                            <li>Reach the exit before running out of rounds or survival points to win.</li>
+                            <li>See adjacent rooms and their possible outcomes before moving.</li>
+                            <li>Plan your path carefully!</li>
+                        </ul>
+                    </div>
+                    <button
+                        onClick={gameStart}
+                        className="px-8 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-bold text-lg transition-all shadow-md"
+                    >
+                        Start Game
+                    </button>
+                </div>
             }
+
             {page === "game" &&
-                <>
-                    <h1 className="text-center text-2xl font-bold mb-4">Game</h1>
+                <div className="w-full max-w-4xl flex flex-col items-center space-y-6">
+                    <h1 className="text-3xl font-bold text-center text-orange-400">Game</h1>
+                    {msg && <p className="text-center text-red-400 font-semibold">{msg}</p>}
 
-                    {/* Mini grid in top-right */}
-                    <div className="absolute top-4 right-4">
-                        <div className="grid grid-cols-5 gap-2 p-4">
+                    {/* Stats */}
+                    <div className="flex justify-center gap-6 mb-4">
+                        <div className="bg-gray-700 px-4 py-2 rounded shadow">
+                            Round: <span className="text-orange-400 font-bold">{round}</span>
+                        </div>
+                        <div className="bg-gray-700 px-4 py-2 rounded shadow">
+                            Survival Points: <span className="text-orange-400 font-bold">{survivalPoints}</span>
+                        </div>
+                        <div className="bg-gray-700 px-4 py-2 rounded shadow">
+                            Future Points: <span className="text-orange-400 font-bold">{futurePoints}</span>
+                        </div>
+                    </div>
+
+                    {/* Mini-grid */}
+                    <div className="absolute top-6 right-6">
+                        <div className="grid grid-cols-5 gap-2 p-2 bg-gray-700 rounded shadow-lg">
                             {Array.from({ length: 25 }).map((_, i) => {
-                                const row = Math.floor(i / 5);
-                                const col = (i % 5) + 1;
-                                const roomName = letters[row] + col;
-
+                                const row = Math.floor(i / 5)
+                                const col = (i % 5) + 1
+                                const roomName = letters[row] + col
                                 return (
                                     <div
                                         key={i}
-                                        className={`flex items-center justify-center h-6 w-6 border-2 border-orange-500 rounded-md
-              ${roomName === currentRoom ? "bg-white text-black" : ""}`}
+                                        className={`flex items-center justify-center h-6 w-6 border rounded-md text-xs
+                                            ${roomName === currentRoom ? "bg-orange-400 text-black font-bold" : "border-gray-500"}`}
                                     >
                                         {roomName}
                                     </div>
-                                );
+                                )
                             })}
                         </div>
                     </div>
 
-                    {/* Big room in the middle */}
-                    <div className="flex justify-center items-center h-screen">
-                        <div className="relative w-80 h-80 bg-gray-900 border-4 border-gray-700 rounded-lg">
-
-                            {/* Top (North) */}
-                            {getAdjacentRoom(currentRoom, "north") !== "X" &&
-                                (() => {
-                                    const northRoom = getAdjacentRoom(currentRoom, "north")
-                                    return (
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full flex flex-col items-center gap-2">
-                                            <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-center">
-                                                {doorFutures[northRoom]?.description}
-                                            </div>
-                                            <div
-                                                className="w-20 h-10 bg-red-500 flex items-center justify-center text-white rounded cursor-pointer"
-                                                onClick={() => handleRoomClick(northRoom)}
-                                            >
-                                                {northRoom}
-                                            </div>
+                    {/* Big room */}
+                    <div className="relative w-72 h-72 bg-gray-900 border-4 border-gray-700 rounded-xl shadow-lg flex items-center justify-center">
+                        {/* North */}
+                        {getAdjacentRoom(currentRoom, "north") !== "X" &&
+                            (() => {
+                                const northRoom = getAdjacentRoom(currentRoom, "north")
+                                return (
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full flex flex-col items-center gap-1">
+                                        <div className="bg-gray-700 text-white text-xs px-2 py-1 rounded shadow w-28 text-center">
+                                            {doorFutures[northRoom]?.description}
                                         </div>
-                                    )
-                                })()
-                            }
-
-                            {/* Right (East) */}
-                            {getAdjacentRoom(currentRoom, "east") !== "X" &&
-                                (() => {
-                                    const eastRoom = getAdjacentRoom(currentRoom, "east")
-                                    return (
-                                        <div className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2 flex flex-row items-center gap-2">
-                                            <div
-                                                className="w-10 h-20 bg-green-500 flex items-center justify-center text-white rounded rotate-90 cursor-pointer"
-                                                onClick={() => handleRoomClick(eastRoom)}
-                                            >
-                                                {eastRoom}
-                                            </div>
-                                            <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32">
-                                                {doorFutures[eastRoom]?.description}
-                                            </div>
+                                        <div
+                                            className="w-20 h-10 bg-red-500 flex items-center justify-center rounded-lg cursor-pointer hover:bg-red-600 transition text-sm"
+                                            onClick={() => handleRoomClick(northRoom)}
+                                        >
+                                            {northRoom}
                                         </div>
-                                    )
-                                })()
-                            }
+                                    </div>
+                                )
+                            })()
+                        }
 
-                            {/* Bottom (South) */}
-                            {getAdjacentRoom(currentRoom, "south") !== "X" &&
-                                (() => {
-                                    const southRoom = getAdjacentRoom(currentRoom, "south")
-                                    return (
-                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full flex flex-col items-center gap-2">
-                                            <div
-                                                className="w-20 h-10 bg-blue-500 flex items-center justify-center text-white rounded cursor-pointer"
-                                                onClick={() => handleRoomClick(southRoom)}
-                                            >
-                                                {southRoom}
-                                            </div>
-                                            <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-center">
-                                                {doorFutures[southRoom]?.description}
-                                            </div>
+                        {/* East */}
+                        {getAdjacentRoom(currentRoom, "east") !== "X" &&
+                            (() => {
+                                const eastRoom = getAdjacentRoom(currentRoom, "east")
+                                return (
+                                    <div className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2 flex flex-row items-center gap-1">
+                                        <div
+                                            className="w-10 h-20 bg-green-500 flex items-center justify-center rounded-lg cursor-pointer hover:bg-green-600 transition rotate-90 text-sm"
+                                            onClick={() => handleRoomClick(eastRoom)}
+                                        >
+                                            {eastRoom}
                                         </div>
-                                    )
-                                })()
-                            }
-
-                            {/* Left (West) */}
-                            {getAdjacentRoom(currentRoom, "west") !== "X" &&
-                                (() => {
-                                    const westRoom = getAdjacentRoom(currentRoom, "west")
-                                    return (
-                                        <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 flex flex-row items-center gap-2">
-                                            <div className="bg-gray-800 text-white text-sm px-3 py-1 rounded shadow w-32 text-right">
-                                                {doorFutures[westRoom]?.description}
-                                            </div>
-                                            <div
-                                                className="w-10 h-20 bg-yellow-500 flex items-center justify-center text-white rounded -rotate-90 cursor-pointer"
-                                                onClick={() => handleRoomClick(westRoom)}
-                                            >
-                                                {westRoom}
-                                            </div>
+                                        <div className="bg-gray-700 text-white text-xs px-2 py-1 rounded shadow w-28">
+                                            {doorFutures[eastRoom]?.description}
                                         </div>
-                                    )
-                                })()
-                            }
+                                    </div>
+                                )
+                            })()
+                        }
 
-                            {/* Room name in the centre */}
-                            <div className="flex items-center justify-center h-full text-white text-3xl font-bold">
-                                {currentRoom}
-                            </div>
-                        </div>
+                        {/* South */}
+                        {getAdjacentRoom(currentRoom, "south") !== "X" &&
+                            (() => {
+                                const southRoom = getAdjacentRoom(currentRoom, "south")
+                                return (
+                                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full flex flex-col items-center gap-1">
+                                        <div
+                                            className="w-20 h-10 bg-blue-500 flex items-center justify-center rounded-lg cursor-pointer hover:bg-blue-600 transition text-sm"
+                                            onClick={() => handleRoomClick(southRoom)}
+                                        >
+                                            {southRoom}
+                                        </div>
+                                        <div className="bg-gray-700 text-white text-xs px-2 py-1 rounded shadow w-28 text-center">
+                                            {doorFutures[southRoom]?.description}
+                                        </div>
+                                    </div>
+                                )
+                            })()
+                        }
+
+                        {/* West */}
+                        {getAdjacentRoom(currentRoom, "west") !== "X" &&
+                            (() => {
+                                const westRoom = getAdjacentRoom(currentRoom, "west")
+                                return (
+                                    <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 flex flex-row items-center gap-1">
+                                        <div className="bg-gray-700 text-white text-xs px-2 py-1 rounded shadow w-28 text-right">
+                                            {doorFutures[westRoom]?.description}
+                                        </div>
+                                        <div
+                                            className="w-10 h-20 bg-yellow-500 flex items-center justify-center rounded-lg cursor-pointer hover:bg-yellow-600 transition -rotate-90 text-sm"
+                                            onClick={() => handleRoomClick(westRoom)}
+                                        >
+                                            {westRoom}
+                                        </div>
+                                    </div>
+                                )
+                            })()
+                        }
+
+                        {/* Center Room */}
+                        <div className="text-3xl font-extrabold text-orange-400">{currentRoom}</div>
                     </div>
 
-                    <div className="text-center mt-4">
-                        <button onClick={() => setPage("end")}
-                                className="px-4 py-2 bg-orange-500 text-white rounded-lg">
-                            End Game
-                        </button>
-                    </div>
-                </>
+                    {/* End game button */}
+                    <button
+                        onClick={() => setPage("end")}
+                        className="mt-4 px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg font-bold shadow-lg transition"
+                    >
+                        End Game
+                    </button>
+                </div>
             }
+
             {page === "end" &&
-                <>
-                    <h1>End</h1>
-                    <button onClick={gameStart}>Start Game</button>
-                </>
+                <div className="bg-gray-800 rounded-xl p-8 shadow-xl max-w-md w-full text-center">
+                    <h1 className="text-4xl font-bold mb-6 text-orange-400">Game Over</h1>
+                    <p className="text-lg mb-6">{endMessage}</p>
+                    <button
+                        onClick={gameStart}
+                        className="px-8 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-bold text-lg transition-all shadow-md"
+                    >
+                        Play Again
+                    </button>
+                </div>
             }
-        </>
+        </div>
     )
 }
 
